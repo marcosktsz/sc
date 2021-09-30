@@ -1,0 +1,129 @@
+msqid = msgget(msgKey or IPC_PRIVATE, S_IWUSR | S_IRUSR);
+
+// set of signals (N.B. it is not initialized!)
+sigset_t mySet;
+// blocking all signals but SIGTERM
+sigfillset(&mySet);
+sigselset(&mySet,SIGTERM);
+sigprocmask(SIG_SETMASK,&mySet,NULL);
+
+
+if(signal(SIGTERM,signTermHandler)== SIG_ERR);
+    errExit("change signal handler failed");
+
+
+size_t msize = sizeof(struct order) - sizeof(long);
+msgrcv(msqid,&order,msize,0,0);
+
+printf("Insert order code: ");
+fgets(buffer,sizeof(buffer),stdin);
+order.code = readInt(buffer);
+
+// read a description of the order
+printf("Insert a description: ");
+fgets(order.description,sizeof(order.description),stdin);
+len = strlen(order.description);
+order.description[len - 1] = '\0';
+
+
+size_t msize = sizeof(struct order) - sizeof(long);
+msgsnd(msqid,&order,msize,0)
+
+int val;
+struct semid_ds * buf;
+unsigned short * array;
+
+struct sembuf sop = {.sem_num = sem_num, .sem_op = sem_op, .sem_flg = 0};
+
+if (semop(semid, &sop, 1) == -1)
+    errExit("semop failed");
+
+int semid = semget(IPC_PRIVATE, 4, S_IRUSR | S_IWUSR);
+
+unsigned short semInitVal[] = {0, 0, 0, 1};
+union semun arg;
+arg.array = semInitVal;
+semctl(semid, 0 /*ignored*/, SETALL, arg);
+                semOp(semid, (unsigned short)child, -1);
+                fflush(stdout);
+                semOp(semid, (unsigned short) (child == 0)? 3 : child - 1, 1);
+semctl(semid, 0 /*ignored*/, IPC_RMID, NULL
+
+pid_t pid;
+for (int i = 0; i < n; ++i) {
+    // generate a rand number for the subprocess
+    int code = (int)(((double)rand() / RAND_MAX) * 255);
+
+    // generate a subprocess
+    pid = fork();
+    if (pid == -1)
+        printf("child %d not created!", i);
+    else if (pid == 0) {
+        printf("PID: %d , PPID: %d. Exit code: %d\n",
+                getpid(), getppid(), code);
+        exit(code);
+    }
+}
+
+int status, res;
+// get the termination status of the last created subprocess.
+do {
+    res = waitpid(pid, &status, WNOHANG);
+    if (res == -1)
+        errExit("waitpid failed");
+} while (res == 0);
+
+printf("Child %d exited, status=%d\n", pid, WEXITSTATUS(status));
+
+for (int i = 1; i < argc; ++i) {
+    // open the file in read only mode
+    int file = open(argv[i], O_RDONLY);
+    if (file == -1) {
+        printf("File %s does not exist\n", argv[i]);
+        continue;
+    }
+
+    ssize_t bR = 0;
+    do {
+        // read the file in chunks
+        bR = read(file, buffer, BUFFER_SZ);
+        if (bR > 0) {
+            // add the character '\0' to let printf know where a
+            // string ends
+            buffer[bR] = '\0';
+            printf("%s", buffer);
+        }
+    } while (bR > 0);
+
+    // close the file descriptor
+    close(file);
+}
+#include <sys/shm.h>
+#include <sys/stat.h>
+
+#include errExit.h
+#include shared_memory.h
+
+ int alloc_shared_memory(key_t shmKey, size_t size) {
+    // get, or create, a shared memory segment
+   int shmid = shmget(shmKey,size,IPC_CREAT | S_IRUSR | S_IWUSR);
+
+    return shmid;
+}
+
+void *get_shared_memory(int shmid, int shmflg) {
+    // attach the shared memory
+    void *ptr_sh = shmat(shmid,NULL,shmflg) ;
+
+    return ptr_sh
+}
+
+void free_shared_memory(void *ptr_sh) {
+    // detach the shared memory segments
+    shmdt(ptr_sh);
+}
+
+void remove_shared_memory(int shmid) {
+    // delete the shared memory segment
+    shmctl(shmid,IPC_RMID,NULL);
+}

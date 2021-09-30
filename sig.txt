@@ -1,0 +1,81 @@
+pid_t child1, child2;
+
+void sigHandlerChild1(int sig) {
+    if (sig == SIGUSR2) {
+        printf("<child1> received SIGUSR2!\n");
+        exit(0);
+    }
+}
+
+void sigHandlerChild2(int sig) {
+    if (sig == SIGUSR1) {
+        printf("<child2> received SIGUSR1. Sending SIGUSR2 to parent\n");
+        kill(getppid(),SIGUSR2);
+        exit(0);
+    }
+}
+
+void sigHandlerParent(int sig) {
+    if (sig == SIGUSR1) {
+        printf("<parent> received SIGUSR1. Sending SIGUSR1 to child2\n");
+        kill(child2,SIGUSR1);
+    } else if (sig == SIGUSR2) {
+        printf("<parent> received SIGUSR2. Sending SIGUSR2 to child1\n");
+        kill(child1,SIGUSR2);
+    }
+}
+
+int main (int argc, char *argv[]) {
+    // set of signals. Not initialized!
+    sigset_t mySet;
+    // initialize mySet to contain all signals
+    sigfillset(&mySet);
+    // update signal mask to block all signals
+    sigprocmask(SIG_SETMASK,&mySet,NULL);
+
+    // create the first process child (figlio1)
+    child1 = fork();
+    if (child1 == -1)
+        errExit("fork failed");
+
+    // keep in mind: Also for child1 all signals are blocked!
+
+    if (child1 == 0) {
+        // child1 uses sigHandlerChild1 as handler for SIGUSR2,
+        // which is blocked since the parent blocked all signals
+        // Set sigHandlerChild1 as handler for SIGUSR2
+        signal(SIGUSR2,sigHandlerChild1);
+
+        // remove SIGUSR2 to the list of blocked signals
+        sigdelset(&mySet,SIGUSR2);
+
+        // update signal mask
+        sigprocmask(SIG_SETMASK,&mySet,NULL);
+
+        printf("<child1> sending SIGUSR1 to parent\n");
+
+        // send SIGUSR1 to parent process
+        kill(getppid(),SIGUSR1);
+
+        // wait for SIGUSR2 signal, which could have already beed delivered!
+        pause();
+
+        exit(0);
+    }
+    signal(SIGUSR1,sigHandlerParent);
+    signal(SIGUSR2,sigHandlerParent);
+
+    // remove SIGUSR1 and SIGUSR2 from mySet
+    sigdelset(&mySet,SIGUSR1);
+    sigdelset(&mySet,SIGUSR2);
+
+    // update signal mask to block all signals but SIGUSR1 and SIGUSR2
+    sigprocmask(SIG_SETMASK,&mySet,NULL);
+
+    // wait termination of both task children
+    while(wait(NULL)!=-1);
+
+    printf("Both the child processes are terminated\n");
+
+    return 0;
+}
